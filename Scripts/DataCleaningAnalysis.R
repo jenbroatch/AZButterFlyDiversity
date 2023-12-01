@@ -1,7 +1,12 @@
 # 12/1/2023 
 # Jennifer Broatch
 # Data Cleaning from Site Sampling Data - updated data with family names 
-# Creates: butterfly_analysis_spring.csv, butterfly_analysis_fall.csv
+
+# Creates: 
+# sites_winter_precipitation.csv
+# sites_monsoon_precipitation.csv
+# butterfly_analysis_spring.csv
+# butterfly_analysis_fall.csv
 
 # LOAD LIBRARIES ---
 library(tidyverse)
@@ -15,7 +20,7 @@ View(bfly)
 
 bfly_analysis1 <- bfly %>% 
   group_by(Year, Month, Day, Site) %>% 
-  summarize(total_butterly_count = sum(ButterflyCount), 
+  summarize(total_butterfly_count = sum(ButterflyCount), 
             Unique_butterflies = n_distinct(NABAEnglishName)) 
 
 
@@ -27,48 +32,14 @@ bfly_analysis <- left_join(bfly_analysis1, bflyparty,
                             by =c('Year', 'Month', 'Day', 'Site'), multiple="first", keep=F)
 
 
-# SEPARATE DATA INTO FALL AND SPRING DATA ---
-
-# Creating the fall DF
-bfly_fall <- bfly_analysis %>% 
-  filter(Month > 6)
-View(bfly_fall)
-
-# Removing second sampling of Santa Rita Mountains
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 9),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 10),]
-
-# Removing pre 7/15 sampling
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'GrandCanyonNorthRim' & bfly_fall$Day == 5),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SycamoreCreekAZ' & bfly_fall$Day == 7),]
-
-# Creating the spring data observations
-bfly_spring <- bfly_analysis %>% 
-  filter(Month < 7)
-
-# Removing post 6/15 sampling  
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$Month == 6),]
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$Month == 6),]
-
-# Save files
-write_csv(x = bfly_spring, 
-          file = "DataSets/butterfly_analysis_spring.csv")
-
-write_csv(x = bfly_fall, 
-          file = "DataSets/butterfly_analysis_fall.csv")
-
-
-
-
-
-# WINTER PRECIPITATION DATA ---
+#PRECIPITATION DATA ---
 
 # Reading in the daily weather and butterfly summary csv
-daily_weather <- read_csv("data/sites_daily_weather.csv")
-Butterfly_summary <- read_csv("data/butterfly_summary.csv")
+daily_weather <- read.csv("DataSets/sites_daily_weather.csv")
 
-# Create a new data frame with all the rows from daily_weather and Butterfly_Summary
-Butterly_daily_weather <- full_join(daily_weather, Butterfly_summary,
+
+# Create a new data frame with all the rows from daily_weather and Butterfly Summary
+Butterfly_daily_weather <- full_join(daily_weather, bfly_analysis,
                                     by =c("year"="Year", "month"="Month", "day"="Day", "Site"="Site"))
 
 # Adding the previous 30, 90, and 365 day high/low/mean temp, and adding sum of the last 30/90/365 day precipitation 
@@ -144,7 +115,7 @@ total_Wseason_precip <- Wseason_precip %>%
 
 # Creating a csv of the yearly winter data
 write_csv(x = total_Wseason_precip, 
-          file = "data/sites_winter_precipitation.csv")
+          file = "DataSets/sites_winter_precipitation.csv")
 
 
 
@@ -189,35 +160,15 @@ monsoon_temp <- monsoon_temp %>%
 # Combining the monsoon temp and precip data
 monsoon_all <- merge(x=monsoon_temp, y=monsoon_precip, by=c("Site", "year"), all = TRUE)
 
-# Rriting the monsoon data to csv
+# WRriting the monsoon data to csv
 write_csv(x = monsoon_all, 
-          file = "data/sites_monsoon_precipitation.csv")
-
-
+          file = "DataSets/sites_monsoon_precipitation.csv")
 
 # BUTTERFLY DATA FRAME ---
 
 # Counting the number of samples per month
-sample_months <- Butterfly_summary %>% 
+sample_months <- bfly_analysis %>% 
   count(Month)
-
-# Renaming n to samples
-sample_months <- sample_months %>% 
-  rename(Sample_Number = n)
-
-# Creating a bar plot
-# Creating lists with the number of sampling events
-month_count <- sample_months$Sample_Number
-
-names(month_count) <- sample_months$Month
-
-barplot(month_count, 
-        names.arg = c("March", "April", "May", "June", "July", "August", "September", "October"),
-        las=2,
-        main = "Number of Butterfly Sampling Events for Each Month",
-        xlab = "Month",
-        ylab = "Number of Sampling Events",
-        ylim = c(0,100))
 
 # Getting days over 30/28 for 30/90/365 day intervals 
 
@@ -266,10 +217,7 @@ yearly_precip<- dw %>%
   group_by(Site, year) %>% 
   summarize(Pyear = sum(Precip))
 
-# Plotting site yearly precip
-precip <- ggplot(yearly_precip, aes(x = year, y = Pyear, color = Site)) + geom_line()
-BflyPrecip <- p + xlab("Year") + ylab("Yearly Precipitation") +
-  ggtitle("Yearly Precipitation for Each Sampling Site")
+
 
 # Splitting into fall and spring sampling periods 
 dws <- dw %>% 
@@ -313,6 +261,36 @@ dwp <- dwp %>%
   summarise(avg_annual = mean(annual_precip))
 
 
+
+# SEPARATE DATA INTO FALL AND SPRING DATA ---
+
+# Creating the fall DF
+bfly_fall <- bfly_analysis %>% 
+  filter(Month > 6)
+View(bfly_fall)
+
+# Removing second sampling of Santa Rita Mountains
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 9),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 10),]
+
+# Removing pre 7/15 sampling
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'GrandCanyonNorthRim' & bfly_fall$Day == 5),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SycamoreCreekAZ' & bfly_fall$Day == 7),]
+
+# Creating the spring data observations
+bfly_spring <- bfly_analysis %>% 
+  filter(Month < 7)
+
+# Removing post 6/15 sampling  
+bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$Month == 6),]
+bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$Month == 6),]
+
+# Save files
+write_csv(x = bfly_spring, 
+          file = "DataSets/butterfly_analysis_spring.csv")
+
+write_csv(x = bfly_fall, 
+          file = "DataSets/butterfly_analysis_fall.csv")
 
 
 
