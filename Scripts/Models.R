@@ -6,131 +6,11 @@ library(dplyr)
 library(zoo)
 library(lme4)
 library(glme)
-#ibrary(DescTools)
 library(nlme)
 
 # LOAD DATA ---
-bfly<- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")
-View(bfly)
-
-Total_butterfly <- bfly %>% 
-  select(Year, Month, Day, Site, ButterflyCount) %>% 
-  group_by(Year, Month, Day, Site) %>% 
-  summarize(total_butterly_count = sum(ButterflyCount)) 
-View(Total_butterfly)
-
-# Creating a data file with Total unique butterfly species for each outing 
-Total_butterfly2 <- bfly %>% 
-  select(Year, Month, Day, Site, NABAEnglishName, Family) %>% 
-  group_by(Year, Month, Day, Site) %>% 
-  summarize(Unique_butterflies = n_distinct(NABAEnglishName))
-
-
-View(Total_butterfly2)
-# SEPARATE DATA INTO FALL AND SPRING DATA ---
-
-# Creating the fall DF
-bfly_fall <- bfly_analysis %>% 
-  select(Year:Family) %>% 
-  filter(Month > 6)
-View(bfly_fall)
-
-# Removing second sampling of santarita mountains
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 9),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 10),]
-
-# Removing pre 7/15 sampling
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'GrandCanyonNorthRim' & bfly_fall$Day == 5),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SycamoreCreekAZ' & bfly_fall$Day == 7),]
-
-# Creating the spring data observations
-bfly_spring <- bfly_analysis %>% 
-  select(year:TotalDistanceMi) %>% 
-  filter(month < 7)
-
-# Removing post 6/15 sampling  
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$month == 6),]
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$month == 6),]
-
-# Save files
-write_csv(x = bfly_spring, 
-          file = "data/butterfly_analysis_spring.csv")
-
-write_csv(x = bfly_fall, 
-          file = "data/butterfly_analysis_fall.csv")
-
-
-
-# GENERATE MODELS ---
-
-#Attempting to set up a basic model 
-model = lmer(total_butterfly_count ~ year + (1|Site),
-             data=bfly_spring,
-             REML = TRUE)
-summary(model)
-
-model2 = lmer(total_butterfly_count ~ Year + (1|Site),
-              data=bfly_fall,
-              REML = TRUE)
-summary(model2)
-
-
-
-model3 = lme(fixed=total_butterfly_count~year, data=bfly_fall, random= ~1|Site)
-summary(model3)
-
-model3
-
-model4 = lme(fixed=total_butterfly_count~year+ tmean_previous30 + tmin_previous30 + tmax_previous30, data=bfly_fall, random= ~1|Site)
-summary(model4)
-plot(model4)
-
-model5 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30, data=bfly_fall, random= ~1|Site)
-plot(model5)
-summary(model5)
-
-model6 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90, data=bfly_fall, random= ~1|Site) 
-summary(model6)
-plot(model6)
-
-model7 = lme(log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90 + (1|Site) + (1|year), data=bfly_fall) 
-
-model8 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90, data=bfly_fall, random=list(~1|year, ~1|Site)) 
-summary(model8)
-plot(model8)
-
-model9 = update(model8, correlation= corAR1())
-
-plot(model9)
-model9$varFix
-
-cov2cor(vcov(model9))
-
-# LOAD LIBRARIES ---
-library(tidyverse)
-library(lubridate)
-library(dplyr)
-library(zoo)
-library(lme4)
-library(glme)
-library(nlme)
-library(readr)
-library(lattice)
-library(car)
-library(lmerTest)
-library(ggplot2)
-library(ggbreak)
-library(influence.ME)
-library(olsrr)
-
-# LOAD DATA ---
-bfly <- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")
-View(bfly)
-
-# LOAD DATA ---
-bfly_spring <- read.csv(file = "data/butterfly_analysis_spring.csv")
-bfly_fall <-read.csv(file = "data/butterfly_analysis_fall.csv")
-
+bfly_spring <- read.csv(file = "DataSets/butterfly_analysis_spring.csv")
+bfly_fall <-read.csv(file = "DataSets/butterfly_analysis_fall.csv")
 
 
 # CORRECT DATA ---
@@ -139,8 +19,6 @@ bfly_fall <-read.csv(file = "data/butterfly_analysis_fall.csv")
 # party hours should be 26
 bfly_fall["PartyHours"][bfly_fall["PartyHours"] == 126] <- 26
 
-View(bfly_spring)
-
 # Removing the grand canyon sampling events from the spring data set as requested
 bfly_spring2 <- subset(bfly_spring, Site!= 'GrandCanyonDesertView')
 bfly_spring2 <- subset(bfly_spring2, Site!= 'GrandCanyonSouthRim')
@@ -148,151 +26,6 @@ bfly_spring2 <- subset(bfly_spring2, Site!= 'GrandCanyonSouthRim')
 bfly_fall2 <- subset(bfly_fall, Site!= 'GrandCanyonNorthRim')
 bfly_fall3 <- subset(bfly_fall, Site!= 'McDowellSonoranPreserve')
 
-hist(bfly_spring$total_butterfly_count)
-hist(log(bfly_spring$total_butterfly_count))
-hist(bfly_fall$total_butterfly_count)
-hist(log(bfly_fall$total_butterfly_count))
-
-
-
-# INITIAL MODEL ASSESSMENTS ---
-
-# Attempting to set up model - DOES NOT CONVERGE allows for random slope for each site as well! 
-model = lmer(log(total_butterfly_count) ~ +tmean_previous30+year + (year|Site)  ,
-             data=bfly_spring,
-             REML = TRUE)
-summary(model)
-
-# WORKS ;) 
-model_fall = lmer(log(total_butterfly_count) ~ +tmean_previous30+year + 
-                    (1|Site)  + (1|year),
-                  data=bfly_fall,
-                  REML = TRUE)
-summary(model_fall) 
-ranef(model_fall)
-plot(model_fall)
-
-# Check out more variables need precip! ADD random ?+ (1|year)
-# 90days in temp not significant
-
-# Fall model for total butterflies
-model_fall1 = lmer(log(total_butterfly_count) ~ +year
-                   
-                   + tmin_previous30 + 
-                     
-                     tmax_previous30+
-                     Mseason_precip+
-                     Wseason_precip +
-                     PartyHours +
-                     (1|Site)  ,
-                   data=bfly_fall,
-                   REML = TRUE)
-summary(model_fall1) 
-ranef(model_fall1)
-plot(model_fall1)
-vif(model_fall1)
-anova(model_fall1)
-
-fallran <- ranef(model_fall1)
-dotplot(fallran)
-
-# Spring model for total butterflies
-model_spring1 = lm(log(total_butterfly_count)  ~year
-                   
-                   + tmin_previous30 + 
-                     
-                     tmax_previous30+
-                     Mseason_precip+
-                     Wseason_precip +
-                     PartyHours 
-                   ,
-                   data=bfly_spring
-)
-summary(model_spring1) 
-
-# ---
-anova(model_spring1)
-springran <- ranef(model_spring1)
-dotplot(springran)
-
-# Precip 365 not as good as Monsoon
-model_fall2 = lmer(log(total_butterfly_count) ~ +year
-                   
-                   + tmin_previous30 + 
-                     
-                     tmax_previous30+
-                     PrecipSum_previous365+
-                     (1|Site)  ,
-                   data=bfly_fall,
-                   REML = TRUE)
-summary(model_fall2) 
-ranef(model_fall2)
-plot(model_fall2)
-vif(model_fall2)
-
-# Does not converge 
-model_fall = lmer(log(total_butterfly_count) ~ +tmean_previous30+year + 
-                    (1|Site)  + (0+year|Site),
-                  data=bfly_fall,
-                  REML = TRUE)
-summary(model_fall) 
-ranef(model_fall)
-
-# ---
-model_spring = lmer(log(total_butterfly_count) ~ +tmean_previous30+year + 
-                      (1|Site)  + (1|year),
-                    data=bfly_spring,
-                    REML = TRUE)
-summary(model_spring) 
-ranef(model_spring)
-plot(model_spring)
-
-# ---
-model2 = lmer(total_butterfly_count ~ year + (1|Site),
-              data=bfly_fall,
-              REML = TRUE)
-summary(model2)
-
-# ---
-model3 = lme(fixed=total_butterfly_count~year, data=bfly_fall, random= ~1|Site)
-summary(model3)
-
-model3
-
-# ---
-model4 = lme(fixed=total_butterfly_count~year tmin_previous30 + tmax_previous30, data=bfly_fall, random= ~1|Site)
-summary(model4)
-plot(model4)
-
-# ---
-model5 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30, data=bfly_fall, random= ~1|Site)
-plot(model5)
-summary(model5)
-
-# ---
-model6 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90, data=bfly_fall, random= ~1|Site) 
-summary(model6)
-plot(model6)
-
-# ---
-model7 = lme(log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90 + (1|Site) + (1|year), data=bfly_fall) 
-
-# ---
-model8 = lme(fixed=log(total_butterfly_count)~year+ tmean_previous30 + tmin_previous30 + tmax_previous30 + PrecipSum_previous90, data=bfly_fall, random=list(~1|year, ~1|Site)) 
-summary(model8)
-plot(model8)
-
-# ---
-model9 = update(model8, correlation= corAR1())
-
-plot(model9)
-model9$varFix
-
-cov2cor(vcov(model9))
-
-# ---
-hist(bfly_fall$Unique_butterflies)
-hist(bfly_spring$Unique_butterflies)
 
 # Spring model for unique butterflies
 model_spring5 = lm(Unique_butterflies  ~ year + 
@@ -303,8 +36,6 @@ model_spring5 = lm(Unique_butterflies  ~ year +
                      PartyHours,
                    data=bfly_spring)
 
-summary(model_spring5) 
-plot(model_spring5)
 
 # Fall model for unique butterflies
 model_fall5 = lmer(sqrt(Unique_butterflies) ~ + year + 

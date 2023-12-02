@@ -18,6 +18,10 @@ library(zoo)
 bfly<- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")
 View(bfly)
 
+bfly <- bfly %>% 
+  group_by(Year, Month, Day, Site) %>% 
+filter (! duplicated(LatinAnalysisName))
+
 bfly_analysis1 <- bfly %>% 
   group_by(Year, Month, Day, Site) %>% 
   summarize(total_butterfly_count = sum(ButterflyCount), 
@@ -164,126 +168,66 @@ monsoon_all <- merge(x=monsoon_temp, y=monsoon_precip, by=c("Site", "year"), all
 write_csv(x = monsoon_all, 
           file = "DataSets/sites_monsoon_precipitation.csv")
 
-# BUTTERFLY DATA FRAME ---
+# Joining the monsoon and winter data
+Seasonal <- left_join(total_Wseason_precip, monsoon_all, by=c("Site", "year"))
 
-# Counting the number of samples per month
-sample_months <- bfly_analysis %>% 
-  count(Month)
-
-# Getting days over 30/28 for 30/90/365 day intervals 
-
-# Creating a column that signifies if tmax was greater than 30 for the day
-Final_Butterly2 <- Final_Butterly %>% 
-  mutate(Group_Thirty = case_when(
-    tmax <= 30 ~ 0,
-    tmax > 30 ~ 1
-  ))
-
-# Creating a column that signifies if tmax was greater than 28 for the day
-Final_Butterly2 <- Final_Butterly2 %>% 
-  mutate(Group_Twentyeight = case_when(
-    tmax <= 28 ~ 0,
-    tmax > 28 ~ 1
-  ))
-
-Final_Butterly2 <- Final_Butterly2 %>%  
-  group_by(Site) %>% 
-  arrange(Site) %>% 
-  mutate(Previous30_above30=rollsum(Group_Thirty,30, na.pad = TRUE, align = "right")) %>% 
-  mutate(Previous90_above30=rollsum(Group_Thirty,90, na.pad = TRUE, align = "right")) %>% 
-  mutate(Previous365_above30=rollsum(Group_Thirty,365, na.pad = TRUE, align = "right")) %>% 
-  mutate(Previous30_above28=rollsum(Group_Twentyeight,30, na.pad = TRUE, align = "right")) %>% 
-  mutate(Previous90_above28=rollsum(Group_Twentyeight,90, na.pad = TRUE, align = "right")) %>% 
-  mutate(Previous365_above28=rollsum(Group_Twentyeight,365, na.pad = TRUE, align = "right"))
+# Joining the seasonal data to the butterfly data
+seasonal_butterfly <- left_join(Final_Butterly, Seasonal, by=c("Site", "year"))
 
 
-# Writing butterfly data to csv
-write_csv(x = Final_Butterly2, 
-          file = "data/butterfly_analysis_empty_counts.csv")
+# Dropping days without a sampling event
+sampling_events <-seasonal_butterfly %>% 
+  drop_na(Unique_butterflies)
+
+# Dropping sample events that do not have weather data i.e. prior to 1981
+sampling_events <- sampling_events %>% 
+  drop_na(tmin)
+
+# Adding recent precip option 1
+sampling_events <- mutate(sampling_events, recent_precip1 = 
+                            ifelse(month%in% 3:7, sampling_events$Wseason_precip,
+                                   ifelse(month%in% 8:9, sampling_events$PrecipSum_previous90,
+                                          sampling_events$Mseason_precip)))
+
+# Adding recent precip option 2
+sampling_events <- mutate(sampling_events, recent_precip2 = 
+                            ifelse(month%in% 3:8, sampling_events$Wseason_precip,
+                                   ifelse(month%in% 9, sampling_events$PrecipSum_previous90,
+                                          sampling_events$Mseason_precip)))
+
+# Removing unneeded columns
+sampling_events<- subset(sampling_events, select = -c(previous_Mseason_precip))
+
+# Creating a csv of the sampling events
+write_csv(x = sampling_events, 
+          file = "DataSets/ButterFlyAnalysis.csv")
 
 
-
-# PRECIPITATION PLOTS ---
-
-# Calculating average tmin and tmean for the spring and fall sampling periods over a 30 year time period 1991-2021
-dw <- daily_weather %>% 
-  select(year, month, day, Site, tmin, tmax, Precip) %>% 
-  filter(Site !="GuadalupeCanyonAZNM", Site!= "SpringervilleAZ")
-
-dw <- dw %>% filter(year >=1991, year <=2020)
-
-# Yearly site precip
-yearly_precip<- dw %>% 
-  group_by(Site, year) %>% 
-  summarize(Pyear = sum(Precip))
-
-
-
-# Splitting into fall and spring sampling periods 
-dws <- dw %>% 
-  select(year:tmax) %>% 
-  filter(month >=3, month <=5 )
-
-dws1 <- dw %>% 
-  select(year:tmax) %>% 
-  filter(month ==6, day <=15 )
-
-mean_spring = merge(dws, dws1, all = TRUE)
-
-dwf <- dw %>% 
-  select(year:tmax) %>% 
-  filter(month >=8, month <=10 )
-
-dwf1 <- dw %>% 
-  select(year:tmax) %>% 
-  filter(month ==7, day >=15 )
-
-mean_fall = merge(dwf, dwf1, all = TRUE)
-
-# Calculating the averages for tmin and tmax for each site
-aggregate(.~Site, data = mean_fall, mean)
-aggregate(.~Site, data = mean_spring, mean)
-
-# Creating annual precip for 1991-2020
-dwp <- dw %>% 
-  select(Site, year, Precip) %>% 
-  group_by(Site, year) %>% 
-  summarise(annual_precip = sum(Precip))
-
-# Calculating the standard deviation for the annual precip values
-dwp2 <- dwp %>% 
-  group_by(Site) %>% 
-  summarise_at(vars(annual_precip), list(sd=sd))
-
-dwp <- dwp %>% 
-  select(Site, annual_precip) %>% 
-  group_by(Site) %>% 
-  summarise(avg_annual = mean(annual_precip))
 
 
 
 # SEPARATE DATA INTO FALL AND SPRING DATA ---
 
 # Creating the fall DF
-bfly_fall <- bfly_analysis %>% 
-  filter(Month > 6)
+bfly_fall <- sampling_events %>% 
+  filter(month > 6)
 View(bfly_fall)
 
 # Removing second sampling of Santa Rita Mountains
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 9),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$Month == 10),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$month == 9),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$month == 10),]
 
 # Removing pre 7/15 sampling
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'GrandCanyonNorthRim' & bfly_fall$Day == 5),]
-bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SycamoreCreekAZ' & bfly_fall$Day == 7),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'GrandCanyonNorthRim' & bfly_fall$day == 5),]
+bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SycamoreCreekAZ' & bfly_fall$day == 7),]
 
 # Creating the spring data observations
-bfly_spring <- bfly_analysis %>% 
-  filter(Month < 7)
+bfly_spring <-sampling_events %>% 
+  filter(month < 7)
 
 # Removing post 6/15 sampling  
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$Month == 6),]
-bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$Month == 6),]
+bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$month == 6),]
+bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$month == 6),]
 
 # Save files
 write_csv(x = bfly_spring, 
