@@ -20,7 +20,6 @@ library(zoo)
 # LOAD DATA ---
 #Updated 12/1 - Master file updated/cleaned names to prevent duplicates in analysis 
 bfly<- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")  
-View(bfly)
 
 bfly <- bfly %>% 
   group_by(Year, Month, Day, Site) %>% 
@@ -207,15 +206,11 @@ write_csv(x = sampling_events,
           file = "DataSets/ButterFlyAnalysis.csv")
 
 
-
-
-
 # SEPARATE DATA INTO FALL AND SPRING DATA ---
 
 # Creating the fall DF
 bfly_fall <- sampling_events %>% 
   filter(month > 6)
-View(bfly_fall)
 
 # Removing second sampling of Santa Rita Mountains
 bfly_fall <- bfly_fall[!(bfly_fall$Site == 'SantaRitaMountains' & bfly_fall$month == 9),]
@@ -233,7 +228,7 @@ bfly_spring <-sampling_events %>%
 bfly_spring <- bfly_spring[!(bfly_spring$Site == 'RamseyCanyonAZ' & bfly_spring$month == 6),]
 bfly_spring <- bfly_spring[!(bfly_spring$Site == 'AtascosaHighlandsAZ' & bfly_spring$month == 6),]
 
-# Save files
+# Write files
 write_csv(x = bfly_spring, 
           file = "DataSets/butterfly_analysis_spring.csv")
 

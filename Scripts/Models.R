@@ -1,4 +1,6 @@
 # Data Analysis for Insects manuscript 
+#Winter rains support butterfly diversity, but summer monsoon rainfall drives 
+#fall post monsoon butterfly abundance in the arid southwest US 
 # 12/1/2023 
 # Jennifer Broatch
 
@@ -11,19 +13,23 @@ library(lme4)
 library(glme)
 library(nlme)
 library(regclass)
+library(performance) #for VIF
+library(patchwork)
+
 
 # LOAD DATA ---
 bfly_spring <- read.csv(file = "DataSets/butterfly_analysis_spring.csv")
 bfly_fall <-read.csv(file = "DataSets/butterfly_analysis_fall.csv")
 
 
-# CORRECT DATA ---
+# MINOR DATA CORRECTION FOR TYPO ---
 
 # Correcting the reporting mistake for the 2021 north rim sampling event of 126,
 # party hours should be 26
 bfly_fall["PartyHours"][bfly_fall["PartyHours"] == 126] <- 26
 
-# Removing the grand canyon sampling events from the spring data set as requested
+# Removing the grand canyon sampling events from the spring data set noted in Section 2.5
+# For comparison purposes only 
 bfly_spring2 <- subset(bfly_spring, Site!= 'GrandCanyonDesertView')
 bfly_spring2 <- subset(bfly_spring2, Site!= 'GrandCanyonSouthRim')
 
@@ -31,63 +37,7 @@ bfly_fall2 <- subset(bfly_fall, Site!= 'GrandCanyonNorthRim')
 bfly_fall3 <- subset(bfly_fall, Site!= 'McDowellSonoranPreserve')
 
 
-
-
-
-
-
-# Spring model for unique butterflies
-model_spring5 = lm(Unique_butterflies  ~ year + 
-                     tmin_previous30 +
-                     tmax_previous30 +
-                     Mseason_precip +
-                     Wseason_precip +
-                     PartyHours,
-                   data=bfly_spring)
-
-
-# Fall model for unique butterflies
-model_fall5 = lmer(sqrt(Unique_butterflies) ~ + year + 
-                     tmin_previous30 +
-                     tmax_previous30+
-                     Mseason_precip +
-                     Wseason_precip +
-                     PartyHours +
-                     (1|Site),
-                   data=bfly_fall,
-                   REML = TRUE)
-
-summary(model_fall5) 
-plot(model_fall5)
-
-
-# Creating spaghetti plots for total and unique butterflies over time for each site
-springcounts <- ggplot(bfly_spring, aes(x = year, y = total_butterfly_count, color = Site)) +
-  geom_line() 
-springcounts2 <- springcounts + xlab("Year") + ylab("Butterfly Count") + 
-  ggtitle("Total Butterfly Counts for Each Site (Spring)")
-springcounts2
-
-fallcounts <- ggplot(bfly_fall, aes(x = year, y = total_butterfly_count, color = Site)) +
-  geom_line() 
-fallcounts2 <- fallcounts + xlab("Year") + ylab("Butterfly Count") + 
-  ggtitle("Total Butterfly Counts for Each Site (Fall)")
-fallcounts2
-
-springunique <- ggplot(bfly_spring, aes(x = year, y = Unique_butterflies, color = Site)) +
-  geom_line() 
-springunique2 <- springunique + xlab("Year") + ylab("Unique Butterfly Species") + 
-  ggtitle("Unique Butterfly Species for Each Site (Spring)")
-springunique2
-
-fallunique <- ggplot(bfly_fall, aes(x = year, y = Unique_butterflies, color = Site)) +
-  geom_line() 
-fallunique2 <- fallunique + xlab("Year") + ylab("Unique Butterfly Species") + 
-  ggtitle("Unique Butterfly Species for Each Site (Fall)")
-fallunique2
-
-
-# MODELS THAT ARE USED ---
+## S5. Linear mixed model output table for fall survey butterfly abundance
 
 # Fall model for total butterflies
 model_fall1 = lmer(log(total_butterfly_count) ~ + year + 
@@ -104,12 +54,12 @@ options(scipen=999)
 summary(model_fall1)
 ranef(model_fall1)
 plot(model_fall1)
-vif(model_fall1)
 anova(model_fall1)
 
 fallran <- ranef(model_fall1)
-dotplot(fallran)
 
+
+##  S6. General linear model output table for spring survey butterfly abundance
 # Spring model for total butterflies
 model_spring1 = lm(log(total_butterfly_count) ~ year + 
                      tmin_previous30 + 
@@ -121,13 +71,12 @@ model_spring1 = lm(log(total_butterfly_count) ~ year +
 )
 
 summary(model_spring1) 
-
 anova(model_spring1)
-springran <- ranef(model_spring1)
-dotplot(springran)
 
+##  S7. General mixed  model output table for spring survey butterfly richness
 # Spring model for unique butterflies
-model_spring5 = lm(Unique_butterflies ~ year + 
+
+model_spring2 = lm(Unique_butterflies ~ year + 
                      tmin_previous30 + 
                      tmax_previous30 +
                      Mseason_precip +
@@ -135,13 +84,14 @@ model_spring5 = lm(Unique_butterflies ~ year +
                      PartyHours,
                    data=bfly_spring)
 
-summary(model_spring5) 
-plot(model_spring5)
+summary(model_spring2) 
 
+
+## S8. Linear mixed model output table for summer/fall survey butterfly richness. 
 # Fall model for unique butterflies
-model_fall5 = lmer(sqrt(Unique_butterflies) ~ + year + 
-                     tmin_previous30 + 
-                     tmax_previous30 +
+model_fall2 = lmer(sqrt(Unique_butterflies) ~ + year + 
+                     tmin_previous30 +
+                     tmax_previous30+
                      Mseason_precip +
                      Wseason_precip +
                      PartyHours +
@@ -149,106 +99,17 @@ model_fall5 = lmer(sqrt(Unique_butterflies) ~ + year +
                    data=bfly_fall,
                    REML = TRUE)
 
-summary(model_fall5) 
-plot(model_fall5)
-vif(model_fall5)
+summary(model_fall2) 
+plot(model_fall2)
 
-# Fall model for total butterflies without the two grand canyon north rim samples
-model_fall12 = lmer(log(total_butterfly_count) ~ + year + 
-                      tmin_previous30 + 
-                      tmax_previous30 + 
-                      Mseason_precip +
-                      Wseason_precip +
-                      PartyHours +
-                      (1|Site),
-                    data=bfly_fall2,
-                    REML = TRUE)
+## S9. Variance Inflation Factor (VIF) Output for each model. 
+check_collinearity(model_fall1)
+check_collinearity(model_fall2)
+check_collinearity(model_spring1)
+check_collinearity(model_spring2)
 
-summary(model_fall12) 
-ranef(model_fall12)
-plot(model_fall12)
-vif(model_fall12)
-anova(model_fall12)
+## MS Figures 3/4
 
-fallran2 <- ranef(model_fall12)
-dotplot(fallran2)
-
-# Fall model for unique butterflies without the two grand canyon north rim samples
-model_fall52 = lmer(sqrt(Unique_butterflies) ~ + year +
-                      tmin_previous30 + 
-                      tmax_previous30 +
-                      Mseason_precip +
-                      Wseason_precip +
-                      PartyHours +
-                      (1|Site),
-                    data=bfly_fall2,
-                    REML = TRUE)
-
-summary(model_fall52) 
-plot(model_fall52)
-vif(model_fall52)
-
-
-
-# CALCULATING COOK'S DISTANCE FOR THE 4 MODELS ---
-
-# Cooks distance when grouped by site for fall abundance
-fall_abun <- influence(model_fall1, group = "Site")
-x <- cooks.distance(fall_abun)
-
-# Cooks distance for each individual sampling for fall abundance
-fall_abun2 <- influence(model_fall1, obs = TRUE)
-x2 <- cooks.distance(fall_abun2)
-
-# Cooks distance for each individual sample for spring abundance
-spring_abun <- influence(model_spring1, obs = TRUE)
-z <- cooks.distance(model_spring1)
-ols_plot_cooksd_bar(model_spring1)
-
-# Cooks distance when grouped by site for fall richness
-fall_rich <- influence(model_fall5, group = "Site")
-y <- cooks.distance(fall_rich)
-
-# Cooks distance for each individual sampling for fall richness
-fall_rich2 <- influence(model_fall5, obs = TRUE)
-y2 <- cooks.distance(fall_rich2)
-
-# Cooks distance for for each individual sample for spring richness
-spring_rich <- influence(model_spring5, obs = TRUE)
-z2 <- cooks.distance(model_spring5)
-ols_plot_cooksd_bar(model_spring5)
-
-
-
-# TESTING FALL ABUNDANCE WITHOUT MSP ---
-model_fall13 = lmer(log(total_butterfly_count) ~ + year + 
-                      tmin_previous30 + 
-                      tmax_previous30 +
-                      Mseason_precip +
-                      Wseason_precip +
-                      PartyHours +
-                      (1|Site),
-                    data=bfly_fall3,
-                    REML = TRUE)
-
-summary(model_fall13)
-
-# ---
-model_fall111 = lmer(log(total_butterfly_count) ~ + year + 
-                       tmin_previous30 + 
-                       tmax_previous30 +
-                       Mseason_precip +
-                       Wseason_precip +
-                       PartyHours*year +
-                       (1|Site),
-                     data=bfly_fall,
-                     REML = TRUE)
-
-summary(model_fall111) 
-
-
-
-# Creating data frames combining site abundance into a mean over the years for paper graphs
 fallab <- bfly_fall %>% 
   select(year, total_butterfly_count) %>% 
   group_by(year) %>% 
@@ -259,7 +120,6 @@ springab <- bfly_spring %>%
   group_by(year) %>% 
   summarise(spring_avg_abundance = mean(total_butterfly_count))
 
-# Creating data frames combining site richness into a mean over the years for paper graphs
 fallri <- bfly_fall %>% 
   select(year, Unique_butterflies) %>% 
   group_by(year) %>% 
@@ -288,8 +148,8 @@ ggplot(data=long_abun, aes(x=year, y=myValue, color=Group))+
   geom_smooth(method = "lm", se =TRUE) +
   labs(x="Year", y="Average butterfly abundance", title="") +
   scale_color_discrete(
-    labels= c("fall_avg_abundance" = "Fall",
-              "spring_avg_abundance" = "Spring"))
+    labels= c("fall_avg_abundance" = "Summer/Fall **",
+              "spring_avg_abundance" = "Spring ^"))
 
 # Graphing the average  richness of the years
 ggplot(data=long_rich, aes(x=year, y=myValue, color=Group))+
@@ -297,11 +157,11 @@ ggplot(data=long_rich, aes(x=year, y=myValue, color=Group))+
   geom_smooth(method = "lm", se =TRUE) +
   labs(x="Year", y="Average butterfly richness", title="") +
   scale_color_discrete(
-    labels= c("fall_avg_richness" = "Fall",
-              "spring_avg_richness" = "Spring"))
+    labels= c("fall_avg_richness" = "Summer/Fall",
+              "spring_avg_richness" = "Spring **"))
 
 
-
+## Figure S2. Distribution of mean butterfly abundance, richness, and party hours 
 # Creating data frames for spring and fall dot plots showing abundance and richness for each site
 falldot <- bfly_fall %>% 
   select(Site, total_butterfly_count, Unique_butterflies)
@@ -333,7 +193,6 @@ EnglishSites<- c("Cottonwood","McDowell Sonoran Preserve","Grand Canyon Desert V
                  "Sabino Canyon", "Portal","Santa Rita Mountains")
 
 
-
 # CREATING ORGANIZED BOX PLOTS FOR FALL ---
 
 # Fall abundance
@@ -346,6 +205,7 @@ f1 <- falldot %>%
   geom_boxplot()+
   theme(axis.text.x = element_text(angle = 90))+
   labs(x="Site",y="Abundance")
+f1
 
 # Fall richness
 f2 <- falldot %>% 
@@ -357,7 +217,7 @@ f2 <- falldot %>%
   geom_boxplot()+
   theme(axis.text.x = element_text(angle = 90))+
   labs(x="Site",y="Richness")
-
+f2
 
 
 # CREATING ORGANIZED BOX PLOTS FOR SPRING ---
@@ -429,33 +289,21 @@ springpartyplot <- springparty %>%
   theme(axis.text.x = element_text(angle = 90))+
   labs(x="Site",y="Party hours")
 
-# Fall abundance
-ggplot(falldot, aes(x=Site, y=total_butterfly_count))+
-  geom_dotplot(binaxis = 'y', binwidth = 125)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(x="Site", y="Abundance")+
-  ylim(0,11500)
+## Supplementary Fig S1: 
+f1 
+f2 
+fallpartyplot
+s1
+s2
+springpartyplot
 
-# Fall richness
-ggplot(falldot, aes(x=Site, y=Unique_butterflies))+
-  geom_dotplot(binaxis = 'y', binwidth = 1)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(x="Site", y="Richness")+
-  ylim(0,105)
 
-# Spring abundance
-ggplot(springdot, aes(x=Site, y=total_butterfly_count))+
-  geom_dotplot(binaxis = 'y', binwidth = 80)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(x="Site",y="Abundance")+
-  ylim(0,4000)
 
-# Spring richness
-ggplot(springdot, aes(x=Site, y=Unique_butterflies))+
-  geom_dotplot(binaxis = 'y', binwidth = 1.5)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(x="Site",y="Richness")+
-  ylim(0,80)
+
+
+
+
+
 
 # Fall abundance boxplot
 ggplot(falldot, aes(x=Site, y=total_butterfly_count))+
