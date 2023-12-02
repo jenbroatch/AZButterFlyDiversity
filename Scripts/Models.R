@@ -1,4 +1,7 @@
-# ABOUT ---
+# Data Analysis for Insects manuscript 
+# 12/1/2023 
+# Jennifer Broatch
+
 # LOAD LIBRARIES ---
 library(tidyverse)
 library(lubridate)
@@ -7,6 +10,7 @@ library(zoo)
 library(lme4)
 library(glme)
 library(nlme)
+library(regclass)
 
 # LOAD DATA ---
 bfly_spring <- read.csv(file = "DataSets/butterfly_analysis_spring.csv")
@@ -25,6 +29,11 @@ bfly_spring2 <- subset(bfly_spring2, Site!= 'GrandCanyonSouthRim')
 
 bfly_fall2 <- subset(bfly_fall, Site!= 'GrandCanyonNorthRim')
 bfly_fall3 <- subset(bfly_fall, Site!= 'McDowellSonoranPreserve')
+
+
+
+
+
 
 
 # Spring model for unique butterflies
@@ -50,7 +59,7 @@ model_fall5 = lmer(sqrt(Unique_butterflies) ~ + year +
 
 summary(model_fall5) 
 plot(model_fall5)
-vif(model_fall5)
+
 
 # Creating spaghetti plots for total and unique butterflies over time for each site
 springcounts <- ggplot(bfly_spring, aes(x = year, y = total_butterfly_count, color = Site)) +

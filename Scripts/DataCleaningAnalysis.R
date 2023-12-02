@@ -3,10 +3,13 @@
 # Data Cleaning from Site Sampling Data - updated data with family names 
 
 # Creates: 
+# butterfly_analysis_spring.csv
+# butterfly_analysis_fall.csv 
+
+#Creates Intermediate data sets with climate: 
 # sites_winter_precipitation.csv
 # sites_monsoon_precipitation.csv
-# butterfly_analysis_spring.csv
-# butterfly_analysis_fall.csv
+
 
 # LOAD LIBRARIES ---
 library(tidyverse)
@@ -15,7 +18,8 @@ library(dplyr)
 library(zoo)
 
 # LOAD DATA ---
-bfly<- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")
+#Updated 12/1 - Master file updated/cleaned names to prevent duplicates in analysis 
+bfly<- read.csv(file = "DataSets/TotalButterflyWithFamily.csv")  
 View(bfly)
 
 bfly <- bfly %>% 
@@ -47,7 +51,7 @@ Butterfly_daily_weather <- full_join(daily_weather, bfly_analysis,
                                     by =c("year"="Year", "month"="Month", "day"="Day", "Site"="Site"))
 
 # Adding the previous 30, 90, and 365 day high/low/mean temp, and adding sum of the last 30/90/365 day precipitation 
-Final_Butterly<- Butterly_daily_weather %>% 
+Final_Butterly<- Butterfly_daily_weather %>% 
   group_by(Site) %>% 
   arrange(Site) %>%
   mutate(tmean_previous30=rollmean(tmean,30, na.pad = TRUE, align = "right")) %>% 
