@@ -34,19 +34,13 @@ library(ggthemes)
 
 # ----- LOAD DATA -----
 
-weather <- read.csv("data/sites_daily_weather.csv") # 224625 observations
+# Weather data
+weather <- read.csv("DataSets/sites_daily_weather.csv") # 224625 observations
 
-sites <- read.csv("data/sites_lat_long.csv")
 
 
 
 # ----- REORGANIZE DATA -----
-
-# Remove sites not used in study
-sites <- sites[-c(12, 13, 14), ]
-
-# Remove those sites from weather data
-weather <- semi_join(weather, sites) # 194675 observations
 
 # Select columns being used for figure
 weather <- select(weather, 4, 1, 2, 8, 10)
@@ -60,7 +54,11 @@ weather <- rename(weather, c("site" = "Site",
   # 2) Make a separate data frame for each with respective precip and tmean
 
 # Site names to loop through
-site_name <- select(sites, 3)
+site_name <- weather %>%
+  select(1) %>%
+  distinct() %>%
+  arrange(site) %>%
+  filter(!row_number() %in% c(7, 14))
 
 # Loop for each site (there are 13)
 for (i in 1:13) {
@@ -636,15 +634,8 @@ for (i in 1:13) {
   
 }
 
-# Rearrange for saving
+# Rearrange
 vals_df <- select(vals_df, 4, 1, 2, 3)
-
-# Save data frame
-write.csv(vals_df, "data/figure_generation/sites_monthly_avg_temp_precip.csv",
-          row.names = FALSE) # Suppresses random addition of X column when saving
-
-# If starting from here, load data
-vals_df <- read.csv("data/figure_generation/sites_monthly_avg_temp_precip.csv")
 
 # Average the values across all sites
 all_sites_vals <- vals_df %>%
@@ -652,20 +643,7 @@ all_sites_vals <- vals_df %>%
   summarise(avg_precip = mean(avg_precip, na.rm = TRUE),
             avg_temp = mean(avg_temp, na.rm = TRUE))
 
-# Save data frame
-write.csv(all_sites_vals, 
-          "data/figure_generation/all_sites_monthly_avg_temp_precip.csv",
-          row.names = FALSE)
-
-
-
-
-# ----- GENERATE ANOTHER OMBROTHERMIC DIAGRAM -----
-
-# If starting from here, load data
-all_sites_vals <- read.csv("data/figure_generation/all_sites_monthly_avg_temp_precip.csv")
-
-# Plot
+# Plot diagram with all sites
 coeff <- 3
 
 ggplot(all_sites_vals, aes(x = month)) +
