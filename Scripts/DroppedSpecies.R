@@ -1,7 +1,7 @@
 # Maxine Cruz
 # tmcruz@arizona.edu
 # Created: 1 December 2023
-# Last modified: 4 December 2023
+# Last modified: 5 December 2023
 
 
 
@@ -79,7 +79,7 @@ L_spp <- data %>%
 # All species in first five years v. Species from year x in last three years
 # Which species was not recorded in year x, but was during first five years?
 
-# List years in first 5 years for loop
+# List years in last 3 years for loop
 year_list <- sort(unique(L_spp$Year))
 
 # New data frame to store results
@@ -129,7 +129,8 @@ dropped_all_recent <- fa_lost_species %>%
   group_by(NABAEnglishName) %>%
   filter(n() == 3) %>%
   distinct(NABAEnglishName, .keep_all = TRUE) %>%
-  select(-1)
+  select(-1) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName)
 
 # PLOT RESULTS --
 
@@ -175,7 +176,7 @@ L_spp <- data %>%
 # COMPARE LAST YEARS V. X RECENT YEAR, 
 # AND FIND WHICH SPECIES ARE GONE ALL RECENT YEARS --
 
-# List years in first 3 years for loop
+# List years in last 3 years for loop
 year_list <- sort(unique(L_spp$Year))
 
 # New data frame to store results
@@ -227,7 +228,8 @@ dropped_all_recent <- sp_lost_species %>%
   group_by(NABAEnglishName) %>%
   filter(n() == 3) %>%
   distinct(NABAEnglishName, .keep_all = TRUE) %>%
-  select(-1)
+  select(-1) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName)
 
 # PLOT RESULTS --
 
@@ -254,9 +256,6 @@ sp_lost_species |>
   cols_label(LatinAnalysisName = "Scientific Name",
              NABAEnglishName = "Common Name") |>
   gtsave("sp_yearly_spp_drops.html")
-
-
-
 
 
 
