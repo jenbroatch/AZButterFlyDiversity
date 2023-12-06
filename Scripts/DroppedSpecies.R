@@ -61,7 +61,7 @@ data <- merge(data, seasons, all.x = TRUE)
 F_spp <- data %>%
   filter(Site != "SycamoreCreekAZ") %>%
   filter(Season_Sampled == "Summer/Fall") %>%
-  filter(Year == c(2002, 2003, 2004, 2005, 2006)) %>%
+  filter(Year %in% c(2002, 2003, 2004, 2005, 2006)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -69,7 +69,7 @@ F_spp <- data %>%
 L_spp <- data %>%
   filter(Site != "SycamoreCreekAZ") %>%
   filter(Season_Sampled == "Summer/Fall") %>%
-  filter(Year == c(2019, 2020, 2021)) %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -103,33 +103,23 @@ for (i in 1:3) {
   lost_spp <- anti_join(F_spp, spp, by = "NABAEnglishName")
   
   # Store those results in a data frame
-  df <- data.frame(Year = year,
-                   Species_Lost = lost_spp)
-  
+  df <- lost_spp %>%
+    mutate(Lost_year = year) %>%
+    distinct()
+
   # Append to main data frame
   fa_lost_species <- rbind(fa_lost_species, df)
   
 }
 
-# Save as csv
-write.csv(fa_lost_species, "fall_dropped_spp_3excSycamore.csv")
-
-# Fix data frame
-fa_lost_species <- fa_lost_species %>%
-  select(-2) %>%
-  rename(LatinAnalysisName = Species_Lost.LatinAnalysisName,
-         NABAEnglishName = Species_Lost.NABAEnglishName,
-         Family = Species_Lost.Family,
-         Season_Sampled = Species_Lost.Season_Sampled) %>%
-  arrange(Year, Family, LatinAnalysisName, NABAEnglishName)
-
 # Which species are missing all recent years?
 dropped_all_recent <- fa_lost_species %>%
+  select(-1) %>%
   distinct() %>%
   group_by(NABAEnglishName) %>%
   filter(n() == 3) %>%
   distinct(NABAEnglishName, .keep_all = TRUE) %>%
-  select(-1) %>%
+  select(-5) %>%
   arrange(Family, LatinAnalysisName, NABAEnglishName)
 
 # PLOT RESULTS --
@@ -152,7 +142,7 @@ dropped_all_recent |>
              Family ~ px(150)) |>
   cols_label(LatinAnalysisName = "Scientific Name",
              NABAEnglishName = "Common Name") |>
-  gtsave("fa_spp_drops_3excSycamore.html")
+  gtsave("fa_dropped_spp.html")
 
 
 
@@ -162,14 +152,14 @@ dropped_all_recent |>
 # First years
 F_spp <- data %>%
   filter(Season_Sampled == "Spring") %>%
-  filter(Year == c(2011, 2012, 2013)) %>%
+  filter(Year %in% c(2011, 2012, 2013)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
 # Last years
 L_spp <- data %>%
   filter(Season_Sampled == "Spring") %>%
-  filter(Year == c(2019, 2020, 2021)) %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -201,34 +191,23 @@ for (i in 1:3) {
   lost_spp <- anti_join(F_spp, spp, by = "NABAEnglishName")
   
   # Store those results in a data frame
-  df <- data.frame(Year = year,
-                   Species_Lost = lost_spp)
-  
+  df <- lost_spp %>%
+    mutate(Lost_year = year) %>%
+    distinct()
+
   # Append to main data frame
   sp_lost_species <- rbind(sp_lost_species, df)
   
 }
 
-# Save as csv
-write.csv(sp_lost_species, "spring_dropped_spp.csv")
-
-# Re-organize
-sp_lost_species <- sp_lost_species %>%
-  select(-2) %>%
-  rename(LatinAnalysisName = Species_Lost.LatinAnalysisName,
-         NABAEnglishName = Species_Lost.NABAEnglishName,
-         Family = Species_Lost.Family,
-         Season_Sampled = Species_Lost.Season_Sampled) %>%
-  arrange(Year, Family, LatinAnalysisName) %>%
-  distinct()
-
 # Which species are missing all recent years?
 dropped_all_recent <- sp_lost_species %>%
+  select(-1) %>%
   distinct() %>%
   group_by(NABAEnglishName) %>%
   filter(n() == 3) %>%
   distinct(NABAEnglishName, .keep_all = TRUE) %>%
-  select(-1) %>%
+  select(-5) %>%
   arrange(Family, LatinAnalysisName, NABAEnglishName)
 
 # PLOT RESULTS --
@@ -236,7 +215,7 @@ dropped_all_recent <- sp_lost_species %>%
 # Having issues with gtsave() and gtsave_extra(), so I opened the html file
 # and manually saved the webpage as an image using Web Capture (Edge)
 
-sp_lost_species |>
+dropped_all_recent |>
   group_by(Season_Sampled) |>
   gt() |>
   tab_style(style = list(cell_text(weight = "bold"),
@@ -246,16 +225,12 @@ sp_lost_species |>
             locations = cells_column_labels()) |>
   tab_style(style = cell_text(style = "italic"),
             locations = cells_body(columns = LatinAnalysisName)) |>
-  tab_style(style = cell_text(align = "left"),
-            locations = list(cells_body(columns = Year),
-                             cells_column_labels(columns = Year))) |>
-  cols_width(Year ~ px(90),
-             LatinAnalysisName ~ px(280),
+  cols_width(LatinAnalysisName ~ px(280),
              NABAEnglishName ~ px(250),
              Family ~ px(150)) |>
   cols_label(LatinAnalysisName = "Scientific Name",
              NABAEnglishName = "Common Name") |>
-  gtsave("sp_yearly_spp_drops.html")
+  gtsave("sp_dropped_spp.html")
 
 
 
