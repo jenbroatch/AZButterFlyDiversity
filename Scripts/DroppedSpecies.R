@@ -61,7 +61,7 @@ data <- merge(data, seasons, all.x = TRUE)
 F_spp <- data %>%
   filter(Site != "SycamoreCreekAZ") %>%
   filter(Season_Sampled == "Summer/Fall") %>%
-  filter(Year == c(2002, 2003, 2004, 2005, 2006)) %>%
+  filter(Year %in% c(2002, 2003, 2004, 2005, 2006)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -69,7 +69,7 @@ F_spp <- data %>%
 L_spp <- data %>%
   filter(Site != "SycamoreCreekAZ") %>%
   filter(Season_Sampled == "Summer/Fall") %>%
-  filter(Year == c(2019, 2020, 2021)) %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -103,9 +103,10 @@ for (i in 1:3) {
   lost_spp <- anti_join(F_spp, spp, by = "NABAEnglishName")
   
   # Store those results in a data frame
-  df <- data.frame(Year = year,
-                   Species_Lost = lost_spp)
-  
+  df <- lost_spp %>%
+    mutate(Lost_year = year) %>%
+    distinct()
+
   # Append to main data frame
   fa_lost_species <- rbind(fa_lost_species, df)
   
@@ -162,14 +163,14 @@ dropped_all_recent |>
 # First years
 F_spp <- data %>%
   filter(Season_Sampled == "Spring") %>%
-  filter(Year == c(2011, 2012, 2013)) %>%
+  filter(Year %in% c(2011, 2012, 2013)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
 # Last years
 L_spp <- data %>%
   filter(Season_Sampled == "Spring") %>%
-  filter(Year == c(2019, 2020, 2021)) %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
   select(Year, LatinAnalysisName, NABAEnglishName, Family, Season_Sampled) %>%
   arrange(Year)
 
@@ -201,9 +202,10 @@ for (i in 1:3) {
   lost_spp <- anti_join(F_spp, spp, by = "NABAEnglishName")
   
   # Store those results in a data frame
-  df <- data.frame(Year = year,
-                   Species_Lost = lost_spp)
-  
+  df <- lost_spp %>%
+    mutate(Lost_year = year) %>%
+    distinct()
+
   # Append to main data frame
   sp_lost_species <- rbind(sp_lost_species, df)
   
