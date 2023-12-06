@@ -1,9 +1,28 @@
-# Distinct species in fall v. spring
+# Maxine Cruz
+# tmcruz@arizona.edu
+# Created: 5 December 2023
+# Last modified: 5 December 2023
 
+
+
+
+# ----- ABOUT -----
+
+# For finding species that are exclusive to summer/fall
+  # And species exclusive to spring
+
+
+
+
+# ----- LOAD LIBRARIES -----
 
 library(dplyr)
 library(gt)
 
+
+
+
+# ----- LOAD DATA -----
 
 # For all butterfly data
 data <- read.csv("DataSets/TotalButterflyWithFamily.csv") # 13378 observations
@@ -26,14 +45,21 @@ seasons <- rbind(fall, spring) %>%
 # Match and attach season designation to main data
 data <- merge(data, seasons, all.x = TRUE)
 
+
+
+
+# ----- FIND SPECIES ONLY IN FALL V. ONLY IN SPRING -----
+
 # Separate fall and spring again
 fall <- data %>%
   filter(Season_Sampled == "Summer/Fall") %>%
-  select(6, 12, 13, 14)
-spring <- data %>%
-  filter(Season_Sampled == "Spring") %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
   select(6, 12, 13, 14)
 
+spring <- data %>%
+  filter(Season_Sampled == "Spring") %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
+  select(6, 12, 13, 14)
 
 # Find distinct fall species
 dist_fall <- anti_join(fall, spring, by = "LatinAnalysisName")
@@ -42,9 +68,6 @@ dist_fall <- anti_join(fall, spring, by = "LatinAnalysisName")
 dist_fall <- dist_fall %>% 
   arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
   distinct()
-
-# Save as csv
-write.csv(dist_fall, "distinct_fall.csv")
 
 # Plot table of distinct fall species
 dist_fall |>
@@ -72,9 +95,6 @@ dist_spring <- dist_spring %>%
   arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
   distinct()
 
-# Save as csv
-write.csv(dist_spring, "distinct_spring.csv")
-
 # Plot table of distinct fall species
 dist_spring |>
   group_by(Season_Sampled) |>
@@ -92,4 +112,7 @@ dist_spring |>
   cols_label(LatinAnalysisName = "Scientific Name",
              NABAEnglishName = "Common Name") |>
   gtsave("distinct_spring_spp.html")
+
+
+
 
