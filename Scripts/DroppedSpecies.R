@@ -1,7 +1,7 @@
 # Maxine Cruz
 # tmcruz@arizona.edu
 # Created: 1 December 2023
-# Last modified: 5 December 2023
+# Last modified: 7 December 2023
 
 
 
@@ -44,10 +44,15 @@ seasons <- rbind(fall, spring) %>%
   select(1, 2, 3, 4, 41) %>%
   rename(Year = year,
          Month = month,
-         Day = day)
+         Day = day) %>%
+  arrange(Site, Year, Month, Day)
 
 # Match and attach season designation to main data
-data <- merge(data, seasons, all.x = TRUE)
+data <- merge(data, seasons, all.x = TRUE) %>%
+  arrange(Site, Year, Month, Day) %>%
+  mutate(Season_Sampled = ifelse(Site == "SantaRitaMountains",
+                                 "Summer/Fall",
+                                 Season_Sampled))
 
 
 
@@ -144,6 +149,16 @@ dropped_all_recent |>
              NABAEnglishName = "Common Name") |>
   gtsave("fa_dropped_spp.html")
 
+# Table for csv
+table <- dropped_all_recent %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName)
+
+# Save as csv
+write.csv(table, "fa_dropped_spp.csv", row.names = FALSE)
+
 
 
 
@@ -232,6 +247,14 @@ dropped_all_recent |>
              NABAEnglishName = "Common Name") |>
   gtsave("sp_dropped_spp.html")
 
+# Table for csv
+table <- dropped_all_recent %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName)
 
+# Save as csv
+write.csv(table, "sp_dropped_spp.csv", row.names = FALSE)
 
 

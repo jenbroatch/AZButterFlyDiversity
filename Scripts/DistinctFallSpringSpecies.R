@@ -1,7 +1,7 @@
 # Maxine Cruz
 # tmcruz@arizona.edu
 # Created: 5 December 2023
-# Last modified: 5 December 2023
+# Last modified: 7 December 2023
 
 
 
@@ -26,6 +26,10 @@ library(gt)
 
 # For all butterfly data
 data <- read.csv("DataSets/TotalButterflyWithFamily.csv") # 13378 observations
+data <- data %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
+  distinct() %>%
+  arrange(Site, Year, Month, Day) # 1484 observations
 
 # Fall samples
 fall <- read.csv("DataSets/butterfly_analysis_fall.csv")
@@ -40,10 +44,16 @@ seasons <- rbind(fall, spring) %>%
   select(1, 2, 3, 4, 41) %>%
   rename(Year = year,
          Month = month,
-         Day = day)
+         Day = day) %>%
+  filter(Year %in% c(2019, 2020, 2021)) %>%
+  arrange(Site, Year, Month, Day)
 
 # Match and attach season designation to main data
-data <- merge(data, seasons, all.x = TRUE)
+data <- merge(data, seasons, all.x = TRUE) %>%
+  arrange(Site, Year, Month, Day) %>%
+  mutate(Season_Sampled = ifelse(Site == "SantaRitaMountains",
+                                 "Summer/Fall",
+                                 Season_Sampled))
 
 
 
@@ -92,6 +102,15 @@ fall |>
              NABAEnglishName = "Common Name") |>
   gtsave("all_fall_species.html")
 
+# Save as csv too
+table <- fall %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName) 
+
+write.csv(table, "all_fall_species.csv", row.names = FALSE)
+
 # Plot table of DISTINCT fall species (only found in fall)
 dist_fall |>
   group_by(Season_Sampled) |>
@@ -111,6 +130,15 @@ dist_fall |>
   cols_label(LatinAnalysisName = "Scientific Name",
              NABAEnglishName = "Common Name") |>
   gtsave("distinct_fall_spp.html")
+
+# Save as csv too
+table <- dist_fall %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName)
+
+write.csv(table, "distinct_fall_spp.csv", row.names = FALSE)
 
 # SPRING PLOTS --
 
@@ -134,6 +162,15 @@ spring |>
              NABAEnglishName = "Common Name") |>
   gtsave("all_spring_species.html")
 
+# Save as csv too
+table <- spring %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName)
+
+write.csv(table, "all_spring_species.csv", row.names = FALSE)
+
 # Plot table of DISTINCT spring species (only found in spring)
 dist_spring |>
   group_by(Season_Sampled) |>
@@ -154,6 +191,11 @@ dist_spring |>
              NABAEnglishName = "Common Name") |>
   gtsave("distinct_spring_spp.html")
 
+# Save as csv too
+table <- dist_spring %>%
+  select(-4) %>%
+  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
+  rename("Scientific Name" = LatinAnalysisName,
+         "Common Name" = NABAEnglishName)
 
-
-
+write.csv(table, "distinct_spring_spp.csv", row.names = FALSE)
