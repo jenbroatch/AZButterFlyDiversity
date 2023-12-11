@@ -1,19 +1,14 @@
 # Maxine Cruz
 # tmcruz@arizona.edu
-# Created: 1 December 2023
-# Last modified: 7 December 2023
+# Created: 11 December 2023
+# Last modified: 11 December 2023
 
 
 
 
 # ----- ABOUT -----
 
-# Figure for Discussions
-
-# Make list of all species in first five years of study time frame
-  # Similarly, make list for last five years
-  # Find which species are no longer in list during last five years
-  # Which species drop off each year within those last five years
+# Creates Table S3
 
 
 
@@ -21,12 +16,18 @@
 # ----- LOAD LIBRARIES -----
 
 library(dplyr)
-library(gt)
 
 
 
 
 # ----- LOAD DATA -----
+
+# For final Table S3
+names <- read.csv("DataSets/NameList.csv")
+
+# ---
+
+# For additional columns of S3
 
 # For all butterfly data
 data <- read.csv("DataSets/TotalButterflyWithFamily.csv") # 13378 observations
@@ -38,6 +39,8 @@ fall$Season_Sampled <- "Summer/Fall"
 # Spring samples
 spring <- read.csv("DataSets/butterfly_analysis_spring.csv")
 spring$Season_Sampled <- "Spring"
+
+# ---
 
 # For filtering fall /spring samples
 seasons <- rbind(fall, spring) %>%
@@ -111,14 +114,14 @@ for (i in 1:3) {
   df <- lost_spp %>%
     mutate(Lost_year = year) %>%
     distinct()
-
+  
   # Append to main data frame
   fa_lost_species <- rbind(fa_lost_species, df)
   
 }
 
 # Which species are missing all recent years?
-dropped_all_recent <- fa_lost_species %>%
+fa_dropped_all_recent <- fa_lost_species %>%
   select(-1) %>%
   distinct() %>%
   group_by(NABAEnglishName) %>%
@@ -126,38 +129,6 @@ dropped_all_recent <- fa_lost_species %>%
   distinct(NABAEnglishName, .keep_all = TRUE) %>%
   select(-5) %>%
   arrange(Family, LatinAnalysisName, NABAEnglishName)
-
-# PLOT RESULTS --
-
-# Having issues with gtsave() and gtsave_extra(), so I opened the html file
-# and manually saved the webpage as an image using Web Capture (Edge)
-
-dropped_all_recent |>
-  group_by(Season_Sampled) |>
-  gt() |>
-  tab_style(style = list(cell_text(weight = "bold"),
-                         cell_fill(color = "grey95")),
-            locations = cells_row_groups()) |>
-  tab_style(style = cell_text(weight = "bold"),
-            locations = cells_column_labels()) |>
-  tab_style(style = cell_text(style = "italic"),
-            locations = cells_body(columns = LatinAnalysisName)) |>
-  cols_width(LatinAnalysisName ~ px(280),
-             NABAEnglishName ~ px(250),
-             Family ~ px(150)) |>
-  cols_label(LatinAnalysisName = "Scientific Name",
-             NABAEnglishName = "Common Name") |>
-  gtsave("fa_dropped_spp.html")
-
-# Table for csv
-table <- dropped_all_recent %>%
-  select(-4) %>%
-  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
-  rename("Scientific Name" = LatinAnalysisName,
-         "Common Name" = NABAEnglishName)
-
-# Save as csv
-write.csv(table, "fa_dropped_spp.csv", row.names = FALSE)
 
 
 
@@ -209,14 +180,14 @@ for (i in 1:3) {
   df <- lost_spp %>%
     mutate(Lost_year = year) %>%
     distinct()
-
+  
   # Append to main data frame
   sp_lost_species <- rbind(sp_lost_species, df)
   
 }
 
 # Which species are missing all recent years?
-dropped_all_recent <- sp_lost_species %>%
+sp_dropped_all_recent <- sp_lost_species %>%
   select(-1) %>%
   distinct() %>%
   group_by(NABAEnglishName) %>%
@@ -225,36 +196,34 @@ dropped_all_recent <- sp_lost_species %>%
   select(-5) %>%
   arrange(Family, LatinAnalysisName, NABAEnglishName)
 
-# PLOT RESULTS --
-
-# Having issues with gtsave() and gtsave_extra(), so I opened the html file
-# and manually saved the webpage as an image using Web Capture (Edge)
-
-dropped_all_recent |>
-  group_by(Season_Sampled) |>
-  gt() |>
-  tab_style(style = list(cell_text(weight = "bold"),
-                         cell_fill(color = "grey95")),
-            locations = cells_row_groups()) |>
-  tab_style(style = cell_text(weight = "bold"),
-            locations = cells_column_labels()) |>
-  tab_style(style = cell_text(style = "italic"),
-            locations = cells_body(columns = LatinAnalysisName)) |>
-  cols_width(LatinAnalysisName ~ px(280),
-             NABAEnglishName ~ px(250),
-             Family ~ px(150)) |>
-  cols_label(LatinAnalysisName = "Scientific Name",
-             NABAEnglishName = "Common Name") |>
-  gtsave("sp_dropped_spp.html")
-
-# Table for csv
-table <- dropped_all_recent %>%
-  select(-4) %>%
-  arrange(Family, LatinAnalysisName, NABAEnglishName) %>%
-  rename("Scientific Name" = LatinAnalysisName,
-         "Common Name" = NABAEnglishName)
-
-# Save as csv
-write.csv(table, "sp_dropped_spp.csv", row.names = FALSE)
 
 
+
+# ----- FORM TABLE S3 -----
+
+# Combine all dropped species into one table
+all_dropped <- rbind(fa_dropped_all_recent,
+                     sp_dropped_all_recent)
+
+# Start creating Table S3
+s3 <- mutate(names,
+             Missing2019to2021 = "",
+             Season = "")
+
+# If species was missing all three years between 2019-2021,
+# List as "Yes" under Missing 2019to2021
+s3$Missing2019to2021 <- 
+  ifelse(names$NABAEnglishName %in% all_dropped$NABAEnglishName, "Yes", "")
+
+# Attach which season that species is associated with
+s3$Season <- ifelse(s3$Missing2019to2021 == "Yes",
+                    all_dropped$Season_Sampled[match(names$NABAEnglishName, all_dropped$NABAEnglishName)],
+                    "")
+  
+# Save file
+write.csv(s3, "Outputs/table3_revision.csv", row.names = FALSE)  
+  
+  
+  
+  
+  
