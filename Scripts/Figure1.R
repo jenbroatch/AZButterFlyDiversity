@@ -200,8 +200,8 @@ az_map <- ggplot() +
             vjust = 0,
             nudge_y = -0.2,
             size = 3.5) + 
-  xlab("") +
-  ylab("") +
+  xlab("Longitude") +
+  ylab("Latitude") +
   scale_color_manual(
     name = "Site",
     breaks = c("Cottonwood",
